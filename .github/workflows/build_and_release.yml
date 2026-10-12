@@ -39,6 +39,7 @@ jobs:
         run: |
           mkdir -p release_apks
           cp app/build/outputs/apk/madani/debug/app-madani-debug.apk release_apks/quran-android-v3.6.5-debug.apk
+          cp app/src/main/assets/databases/quran.tr.ozturk.db release_apks/quran.tr.ozturk.db
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
@@ -52,7 +53,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           TAG_NAME="v3.6.5"
-          gh release create "$TAG_NAME" release_apks/quran-android-v3.6.5-debug.apk \
+          gh release create "$TAG_NAME" release_apks/quran-android-v3.6.5-debug.apk release_apks/quran.tr.ozturk.db \
             --title "Quran Android v3.6.5" \
-            --notes "Quran Android v3.6.5 sürümü. Otomatik derlenen güncel APK aşağıda yer almaktadır." \
-            || gh release upload "$TAG_NAME" release_apks/quran-android-v3.6.5-debug.apk --clobber
+            --notes "Quran Android v3.6.5 sürümü. Yaşar Nuri Öztürk meali entegre edilmiştir. Otomatik derlenen güncel APK ve meal veritabanı aşağıda yer almaktadır." \
+            || gh release upload "$TAG_NAME" release_apks/quran-android-v3.6.5-debug.apk release_apks/quran.tr.ozturk.db --clobber

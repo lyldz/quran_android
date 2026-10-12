@@ -168,11 +168,36 @@ open class TranslationManagerPresenter @Inject internal constructor(
     }
 
   internal open suspend fun mergeWithServerTranslations(serverTranslations: List<Translation>): List<TranslationItem> {
-    val localTranslations = translationsDBAdapter.translationsHash()
     val databaseDir = quranFileUtils.getQuranDatabaseDirectory()
+    try {
+      databaseDir.mkdirs()
+      for (custom in CUSTOM_TRANSLATIONS) {
+        val target = File(databaseDir, custom.fileName)
+        if (!target.exists()) {
+          try {
+            appContext.assets.open("databases/${custom.fileName}").use { input ->
+              target.outputStream().use { output ->
+                input.copyTo(output)
+              }
+            }
+          } catch (ignored: Exception) {
+          }
+        }
+      }
+    } catch (e: Exception) {
+      Timber.e(e)
+    }
+
+    val allServerTranslations = if (serverTranslations.any { it.id == CUSTOM_TRANSLATIONS.first().id }) {
+      serverTranslations
+    } else {
+      serverTranslations + CUSTOM_TRANSLATIONS
+    }
+
+    val localTranslations = translationsDBAdapter.translationsHash()
     val updates: MutableList<TranslationItem> = ArrayList()
 
-    val results = serverTranslations.mapIndexed { _, translation ->
+    val results = allServerTranslations.mapIndexed { _, translation ->
       val local = localTranslations[translation.id]
       val dbFile = File(databaseDir, translation.fileName)
       val translationExists = dbFile.exists()
@@ -239,5 +264,21 @@ open class TranslationManagerPresenter @Inject internal constructor(
   companion object {
     private const val WEB_SERVICE_ENDPOINT = "data/translations.php?v=5"
     private const val CACHED_RESPONSE_FILE_NAME = "translations.v5.cache"
+
+    val CUSTOM_TRANSLATIONS = listOf(
+      Translation(
+        id = 5001,
+        minimumVersion = 5,
+        currentVersion = 1,
+        displayName = "Turkish Translation",
+        downloadType = "translation",
+        fileName = "quran.tr.ozturk.db",
+        fileUrl = "https://github.com/lyldz/quran_android/releases/download/v3.6.5/quran.tr.ozturk.db",
+        saveTo = "databases",
+        languageCode = "tr",
+        translator = "Yasar Nuri Ozturk",
+        translatorNameLocalized = "Yaşar Nuri Öztürk"
+      )
+    )
   }
 }
